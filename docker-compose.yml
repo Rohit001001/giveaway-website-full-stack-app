@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gitte-ecommerce-app
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=file:/app/data/sqlite.db
+    volumes:
+      - sqlite-data:/app/data
+    restart: unless-stopped
+    networks:
+      - app-network
+    mem_limit: 768m
+    mem_reservation: 512m
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  sqlite-data:
+    driver: local
