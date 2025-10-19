@@ -8,6 +8,13 @@
       "when": 1760882131482,
       "tag": "0000_ordinary_eternals",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1760882260038,
+      "tag": "0001_fat_jack_flag",
+      "breakpoints": true
     }
   ]
 }
