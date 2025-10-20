@@ -1,26 +1,20 @@
 import type { NextConfig } from "next";
 import path from "node:path";
+
 const LOADER = path.resolve(__dirname, 'src/visual-edits/component-tagger-loader.js');
+
+
 const nextConfig: NextConfig = {
-  output: 'standalone',  // ← ADD THIS LINE FOR DOCKER
+  output: 'standalone',
   images: {
+    domains: ['slelguoygbfzlpylpxfs.supabase.co'],
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: '**',
-      },
-      {
-        protocol: 'http',
-        hostname: '**',
+        hostname: 'slelguoygbfzlpylpxfs.supabase.co',
+        pathname: '/storage/v1/object/public/**',
       },
     ],
-  },
-  outputFileTracingRoot: path.resolve(__dirname, '../../'),
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-  eslint: {
-    ignoreDuringBuilds: true,
   },
   turbopack: {
     rules: {
@@ -30,4 +24,6 @@ const nextConfig: NextConfig = {
     }
   }
 };
+
 export default nextConfig;
+// Orchids restart: 1760982477488

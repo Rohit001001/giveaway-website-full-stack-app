@@ -1,28 +1,45 @@
 version: '3.8'
 
 services:
-  web:
+  app:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: gitte-ecommerce-app
     ports:
       - "3000:3000"
     environment:
       - NODE_ENV=production
-      - DATABASE_URL=file:/app/data/sqlite.db
+      - TURSO_CONNECTION_URL=${TURSO_CONNECTION_URL}
+      - TURSO_AUTH_TOKEN=${TURSO_AUTH_TOKEN}
+      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
+      - BETTER_AUTH_URL=${BETTER_AUTH_URL}
     volumes:
-      - sqlite-data:/app/data
+      # Mount the database file to persist data
+      - ./giveaway.db:/app/giveaway.db
+      # Mount .env file for local development
+      - ./.env:/app/.env
     restart: unless-stopped
-    networks:
-      - app-network
-    mem_limit: 768m
-    mem_reservation: 512m
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/products', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
-networks:
-  app-network:
-    driver: bridge
-
-volumes:
-  sqlite-data:
-    driver: local
+  # Optional: Add a database backup service
+  db-backup:
+    image: alpine:latest
+    volumes:
+      - ./giveaway.db:/data/giveaway.db
+      - ./backups:/backups
+    command: >
+      sh -c "
+        while true; do
+          cp /data/giveaway.db /backups/giveaway-$$(date +%Y%m%d-%H%M%S).db
+          echo 'Database backup created'
+          sleep 86400
+        done
+      "
+    restart: unless-stopped
+    depends_on:
+      - app

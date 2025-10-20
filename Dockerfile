@@ -1,40 +1,49 @@
-# Build stage
-FROM node:20-alpine AS builder
+# Use Node.js LTS version
+FROM node:20-alpine AS base
 
+# Install dependencies only when needed
+FROM base AS deps
+# Check https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine to understand why libc6-compat might be needed.
+RUN apk add --no-cache libc6-compat python3 make g++
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
-
-# Install dependencies
+# Install dependencies based on the preferred package manager
+COPY package.json package-lock.json* ./
 RUN npm ci
 
-# Copy source code
+# Rebuild the source code only when needed
+FROM base AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Build the application
-RUN npm run build
-
-# Production stage
-FROM node:20-alpine AS runner
-
-WORKDIR /app
-
-# Set environment to production
+# Set environment variables for build
+ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 
-# Create a non-root user
+# Generate Prisma/Drizzle client if needed
+RUN npm run build
+
+# Production image, copy all the files and run next
+FROM base AS runner
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# Copy necessary files from builder
+# Copy necessary files
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
-COPY --from=builder /app/package*.json ./
 
-# Create directory for SQLite database
-RUN mkdir -p /app/data && chown -R nextjs:nodejs /app
+# Copy database file if it exists (for SQLite)
+COPY --from=builder /app/giveaway.db* ./
+
+# Set correct permissions
+RUN chown -R nextjs:nodejs /app
 
 USER nextjs
 
@@ -43,5 +52,4 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# Start the application
 CMD ["node", "server.js"]
